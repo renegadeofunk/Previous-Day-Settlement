@@ -1,34 +1,38 @@
 //@version=6
 indicator("Single Prev Day Settlement", overlay = true, max_bars_back = 5000)
-// 1. Fetch previous daily settlement
-pd_settlement = request.security(syminfo.tickerid, "D", close[1], lookahead = barmerge.lookahead_on)
-// 2. Identify the start of the display window.
-// isNewDay fires on the first bar of the new session (6pm ET open).
-// We step back one bar to the last bar of the closing session (~5pm ET),
-// so the line spans the maintenance gap and is visible from market close.
-max_bars_back(time, 5000)
-isNewDay = ta.change(time("D")) != 0
-var int dayStartIndex = na
-if isNewDay
-    dayStartIndex := math.max(0, bar_index - 1)
-// 3. Create and Update the Line and Label
-var line settlementLine = line.new(na, na, na, na, xloc = xloc.bar_index, color = #ff00ff, width = 2)
-var label settlementLabel = na
-if barstate.islast and not na(dayStartIndex)
-    // Update Line: From the first bar of the day to the current bar
-    line.set_xy1(settlementLine, dayStartIndex, pd_settlement)
-    line.set_xy2(settlementLine, bar_index, pd_settlement)
-    // Update Label
-    label.delete(settlementLabel)
-    float yPos = pd_settlement + (syminfo.mintick)
 
+// 1. Fetch previous daily settlement
+max_bars_back(time, 5000)
+float pd_settlement = request.security(syminfo.tickerid, "D", close[1], lookahead = barmerge.lookahead_on)
+
+// 2. When the new session opens (6pm ET), record the settlement and the
+//    close time of the session that just ended. CME has a fixed 1-hour
+//    maintenance gap, so: session_close_time = session_open_time - 1 hour.
+//    Using xloc.bar_time lets the line start at that exact timestamp even
+//    though there are no bars during the maintenance gap.
+bool isNewDay = ta.change(time("D")) != 0
+var int   sessionCloseTime = na
+var float savedSettlement  = na
+
+if isNewDay
+    sessionCloseTime := time - 3600 * 1000
+    savedSettlement  := pd_settlement
+
+// 3. Draw line and label anchored to bar_time
+var line  settlementLine  = line.new(na, na, na, na, xloc = xloc.bar_time, color = #ff00ff, width = 2)
+var label settlementLabel = na
+
+if barstate.islast and not na(sessionCloseTime)
+    line.set_xy1(settlementLine, sessionCloseTime, savedSettlement)
+    line.set_xy2(settlementLine, time,             savedSettlement)
+    label.delete(settlementLabel)
     settlementLabel := label.new(
-         x = bar_index,
-         y = yPos,
-         text = "Settlement",
-         xloc = xloc.bar_index,
+         x         = time,
+         y         = savedSettlement + syminfo.mintick,
+         text      = "Settlement",
+         xloc      = xloc.bar_time,
          textcolor = #ff00ff,
-         style = label.style_label_right,
-         color = color.new(color.white, 100),
-         size = size.normal
+         style     = label.style_label_right,
+         color     = color.new(color.white, 100),
+         size      = size.normal
          )
