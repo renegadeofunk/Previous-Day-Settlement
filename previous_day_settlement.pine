@@ -1,41 +1,36 @@
-//@version=6
+//@version=5
 indicator("Single Prev Day Settlement", overlay = true, max_bars_back = 5000)
 
 max_bars_back(time, 5000)
 
-// close with lookahead_on resolves to the session's confirmed close on the
-// bar that closes the daily period (4 pm CT / 5 pm ET for CME futures).
+// Daily close with lookahead gives the confirmed settlement at 4 pm CT / 5 pm ET
 float closedSett = request.security(syminfo.tickerid, "D", close, lookahead = barmerge.lookahead_on)
 
-// Last bar of the session: bar opens before 4 pm CT, bar closes at/after 4 pm CT.
-// timeframe.in_seconds gives the bar duration so this works on any timeframe.
+// Detect the bar that straddles 4 pm CT (when the daily session closes for CME futures)
 bool isLastSessionBar = hour(time, syminfo.timezone) < 16 and hour(time + timeframe.in_seconds() * 1000, syminfo.timezone) >= 16
 
-// extend.right makes the line stretch to the right edge of the chart regardless
-// of whether new bars have formed — equivalent to the horizontal line tool.
-var line settlementLine = line.new(na, na, na, na,
-     xloc   = xloc.bar_time,
-     extend = extend.right,
-     color  = #ff00ff,
-     width  = 2)
+var line settlementLine = na
 var label settlementLabel = na
 
 if isLastSessionBar
-    // Anchor x1 to the bar's close time — exactly 4 pm CT / 5 pm ET —
-    // so the line starts at the session close regardless of chart timeframe.
     int sessionCloseMs = time + timeframe.in_seconds() * 1000
-    line.set_xy1(settlementLine, sessionCloseMs, closedSett)
-    line.set_xy2(settlementLine, sessionCloseMs + 1, closedSett)
-
-if barstate.islast and not na(line.get_y1(settlementLine))
+    line.delete(settlementLine)
+    settlementLine := line.new(
+         x1     = sessionCloseMs,
+         y1     = closedSett,
+         x2     = sessionCloseMs + 1,
+         y2     = closedSett,
+         xloc   = xloc.bar_time,
+         extend = extend.right,
+         color  = #ff00ff,
+         width  = 2)
     label.delete(settlementLabel)
     settlementLabel := label.new(
-         x         = time,
-         y         = line.get_y1(settlementLine) + syminfo.mintick,
+         x         = sessionCloseMs,
+         y         = closedSett,
          text      = "Settlement",
          xloc      = xloc.bar_time,
          textcolor = #ff00ff,
          style     = label.style_label_right,
          color     = color.new(color.white, 100),
-         size      = size.normal
-         )
+         size      = size.normal)
