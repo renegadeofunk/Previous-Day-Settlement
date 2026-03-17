@@ -9,8 +9,7 @@ float closedSett = request.security(syminfo.tickerid, "D", close, lookahead = ba
 
 // Last bar of the session: bar opens before 4 pm CT, bar closes at/after 4 pm CT.
 // timeframe.in_seconds gives the bar duration so this works on any timeframe.
-bool isLastSessionBar = hour(time,                               syminfo.timezone) < 16 and
-                        hour(time + timeframe.in_seconds * 1000, syminfo.timezone) >= 16
+bool isLastSessionBar = hour(time, syminfo.timezone) < 16 and hour(time + timeframe.in_seconds * 1000, syminfo.timezone) >= 16
 
 // extend.right makes the line stretch to the right edge of the chart regardless
 // of whether new bars have formed — equivalent to the horizontal line tool.
