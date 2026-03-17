@@ -6,8 +6,8 @@ max_bars_back(time, 5000)
 // Daily close with lookahead gives the confirmed settlement at 4 pm CT / 5 pm ET
 float closedSett = request.security(syminfo.tickerid, "D", close, lookahead = barmerge.lookahead_on)
 
-// Detect the bar that straddles 4 pm CT (when the daily session closes for CME futures)
-bool isLastSessionBar = hour(time, syminfo.timezone) < 16 and hour(time + timeframe.in_seconds() * 1000, syminfo.timezone) >= 16
+// Detect the bar that straddles 4 pm ET (daily settlement for CME equity index futures)
+bool isLastSessionBar = hour(time, "America/New_York") < 16 and hour(time + timeframe.in_seconds() * 1000, "America/New_York") >= 16
 
 var line settlementLine = na
 var label settlementLabel = na
@@ -18,7 +18,7 @@ if isLastSessionBar
     settlementLine := line.new(
          x1     = sessionCloseMs,
          y1     = closedSett,
-         x2     = sessionCloseMs + 1,
+         x2     = sessionCloseMs + timeframe.in_seconds() * 1000,
          y2     = closedSett,
          xloc   = xloc.bar_time,
          extend = extend.right,
