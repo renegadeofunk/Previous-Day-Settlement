@@ -19,7 +19,7 @@ if isLastSessionBar
     settlementLine := line.new(
          x1     = sessionCloseMs,
          y1     = closedSett,
-         x2     = sessionCloseMs + timeframe.in_seconds() * 1000,
+         x2     = sessionCloseMs + 2 * 60 * 60 * 1000,
          y2     = closedSett,
          xloc   = xloc.bar_time,
          extend = extend.right,
