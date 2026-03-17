@@ -6,8 +6,9 @@ max_bars_back(time, 5000)
 // Daily close with lookahead gives the confirmed settlement at 4 pm CT / 5 pm ET
 float closedSett = request.security(syminfo.tickerid, "D", close, lookahead = barmerge.lookahead_on)
 
-// Detect the bar that straddles 4 pm ET (daily settlement for CME equity index futures)
-bool isLastSessionBar = hour(time, "America/New_York") < 16 and hour(time + timeframe.in_seconds() * 1000, "America/New_York") >= 16
+// Detect the bar that closes at/after 5 pm ET — the 4 pm candle on a 1-hour chart,
+// whose close (4:59 pm) is the CME equity index daily settlement reference.
+bool isLastSessionBar = hour(time, "America/New_York") < 17 and hour(time + timeframe.in_seconds() * 1000, "America/New_York") >= 17
 
 var line settlementLine = na
 var label settlementLabel = na
