@@ -2,24 +2,21 @@
 indicator("Single Prev Day Settlement", overlay = true, max_bars_back = 5000)
 
 max_bars_back(time, 5000)
+float pd_settlement = request.security(syminfo.tickerid, "D", close[1], lookahead = barmerge.lookahead_on)
 
-// close (with lookahead_on) reads the current daily bar's closing value.
-// We only capture it when the session-close bar fires (4 pm CT / 5 pm ET),
-// so there is no issue with using an in-progress value during the day.
-float closedSett = request.security(syminfo.tickerid, "D", close, lookahead = barmerge.lookahead_on)
-
-// CME session closes at 16:00 exchange time (4 pm CT = 5 pm ET).
-// Fire on the first intraday bar that enters that hour.
-// syminfo.timezone is "America/Chicago" for CME products.
-bool isSessionClose = hour(time, syminfo.timezone) == 16 and
-                      hour(time[1], syminfo.timezone) != 16
+// ta.change(time("D")) fires reliably on the first bar of the new session
+// (6 pm ET for CME). At that bar, time[1] is the open timestamp of the
+// last bar before the maintenance gap — the session-close bar (~5 pm ET) —
+// regardless of chart timeframe. Using xloc.bar_time lets the line start
+// at that exact timestamp.
+bool isNewDay = ta.change(time("D")) != 0
 
 var int   settlementTime  = na
 var float savedSettlement = na
 
-if isSessionClose
-    settlementTime  := time        // 4 pm CT / 5 pm ET bar timestamp
-    savedSettlement := closedSett  // today's settlement, confirmed at session close
+if isNewDay
+    settlementTime  := time[1]    // last bar of the closing session (~5 pm ET)
+    savedSettlement := pd_settlement
 
 var line  settlementLine  = line.new(na, na, na, na, xloc = xloc.bar_time, color = #ff00ff, width = 2)
 var label settlementLabel = na
